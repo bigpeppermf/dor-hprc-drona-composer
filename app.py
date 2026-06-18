@@ -42,6 +42,10 @@ app.register_blueprint(job_composer, url_prefix="/jobs/composer")
 def index():
     return render_template("index.html")
 
+@app.route("/builder")
+def builder():
+    return render_template("builder.html")
+
 @app.route("/config")
 def config_route():
     return detect_env()

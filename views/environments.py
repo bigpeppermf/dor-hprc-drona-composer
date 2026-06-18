@@ -1,11 +1,19 @@
 from flask import request, jsonify, current_app as app
 import os
+import re
 import json
 import shutil
 import yaml
 from .error_handler import APIError, handle_api_error
 from .utils import create_folder_if_not_exist, get_drona_dir, get_envs_dir
 from .env_repo_manager import EnvironmentRepoManager
+
+# Environment names map to directory names, so keep them filesystem-safe.
+ENV_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._-]*$")
+
+# Builder (M6) stages a generated environment here before the user promotes it
+# into their real env dir. See docs/design/environment-builder.md §4.7.
+STAGING_SUBDIR = ".drona_builder_staging"
 
 
 def get_directories(path):
@@ -215,6 +223,162 @@ def get_more_envs_info_route():
     environments_info = repo_manager.get_environments_info(cluster_name)
     return jsonify(environments_info)
 
+def _validate_env_name(name):
+    """Validate an env name and return it, or raise APIError (400)."""
+    if not name or not isinstance(name, str):
+        raise APIError("Missing environment name", status_code=400,
+                       details={"error": 'The "name" parameter is required'})
+    name = name.strip()
+    if name in (".", "..") or not ENV_NAME_RE.match(name) or os.sep in name or "/" in name:
+        raise APIError("Invalid environment name", status_code=400,
+                       details={"error": "Use letters, numbers, spaces, '.', '_', '-'."})
+    return name
+
+
+def _get_staging_dir():
+    """Staging root under the drona dir, or raise APIError."""
+    dd = get_drona_dir()
+    if not dd.get("ok"):
+        raise APIError("drona_dir not configured", status_code=400,
+                       details={"error": dd.get("reason", "unknown")})
+    return os.path.join(dd["drona_dir"], STAGING_SUBDIR)
+
+
+@handle_api_error
+def stage_environment_route():
+    """
+    Milestone 6: stage a block-built environment.
+
+    The builder generates the files client-side and POSTs the strings; we write
+    them to a staging dir. The user then promotes it (see promote route) into
+    their real env dir, where it flows through the unchanged preview/submit
+    pipeline. PROVISIONAL design — see design doc §4.7.
+    """
+    data = request.get_json(silent=True) or {}
+    name = _validate_env_name(data.get("name"))
+
+    schema = data.get("schema")
+    env_map = data.get("map")
+    template = data.get("template", "")
+    driver = data.get("driver", "")
+    utils = data.get("utils", "")
+    builder = data.get("builder")  # optional Blockly workspace serialization
+
+    if not isinstance(schema, dict) or not isinstance(env_map, dict):
+        raise APIError("Invalid payload", status_code=400,
+                       details={"error": '"schema" and "map" must be objects'})
+
+    # The standard driver block emits `cd [flocation]`; that placeholder only
+    # resolves if `flocation` is a map key. Inject it so block-built drivers work.
+    if "[flocation]" in driver and "flocation" not in env_map:
+        env_map["flocation"] = "$location"
+
+    staging_root = _get_staging_dir()
+    env_path = os.path.abspath(os.path.join(staging_root, name))
+    if not env_path.startswith(os.path.abspath(staging_root) + os.sep):
+        raise APIError("Invalid environment path", status_code=400,
+                       details={"error": "path traversal blocked"})
+
+    # Fresh stage each time.
+    if os.path.isdir(env_path):
+        shutil.rmtree(env_path)
+    create_folder_if_not_exist(env_path)
+
+    with open(os.path.join(env_path, "schema.json"), "w") as f:
+        json.dump(schema, f, indent=2)
+    with open(os.path.join(env_path, "map.json"), "w") as f:
+        json.dump(env_map, f, indent=2)
+    with open(os.path.join(env_path, "template.txt"), "w") as f:
+        f.write(template)
+    with open(os.path.join(env_path, "driver.sh"), "w") as f:
+        f.write(driver)
+    with open(os.path.join(env_path, "utils.py"), "w") as f:
+        f.write(utils)
+    if builder is not None:
+        with open(os.path.join(env_path, "builder.json"), "w") as f:
+            json.dump(builder, f, indent=2)
+
+    return jsonify({
+        "status": "Success",
+        "name": name,
+        "staging_path": env_path,
+        "files": ["schema.json", "map.json", "template.txt", "driver.sh", "utils.py"],
+    })
+
+
+@handle_api_error
+def promote_environment_route():
+    """
+    Milestone 6: promote a staged environment into the user's env dir so it
+    becomes selectable in the Composer. PROVISIONAL design — see design doc §4.7.
+    """
+    data = request.get_json(silent=True) or {}
+    name = _validate_env_name(data.get("name"))
+    overwrite = bool(data.get("overwrite", False))
+
+    staging_root = os.path.abspath(_get_staging_dir())
+    src = os.path.abspath(os.path.join(staging_root, name))
+    if not src.startswith(staging_root + os.sep) or not os.path.isdir(src):
+        raise APIError("Staged environment not found", status_code=404,
+                       details={"error": f'Stage "{name}" first'})
+
+    eres = get_envs_dir()
+    if not eres["ok"]:
+        return jsonify({"message": eres["reason"]}), 400
+    envs_dir = os.path.abspath(eres["path"])
+    create_folder_if_not_exist(envs_dir)
+    dest = os.path.abspath(os.path.join(envs_dir, name))
+    if not dest.startswith(envs_dir + os.sep):
+        raise APIError("Invalid environment path", status_code=400,
+                       details={"error": "path traversal blocked"})
+
+    if os.path.isdir(dest):
+        if not overwrite:
+            raise APIError("Environment already exists", status_code=409,
+                           details={"error": f'"{name}" exists; pass overwrite=true to replace'})
+        shutil.rmtree(dest)
+
+    shutil.copytree(src, dest)
+    return jsonify({"status": "Success", "env": name, "path": dest})
+
+
+@handle_api_error
+def load_environment_builder_route():
+    """
+    Milestone 7: return the saved builder.json (Blockly workspace) for an env so
+    the user can reopen and keep editing it. `from` selects staging vs the real
+    env dir (default: env dir). Returns { exists, builder } — builder is null if
+    the env has no builder.json (e.g. a hand-authored env).
+    """
+    name = _validate_env_name(request.args.get("name"))
+    source = request.args.get("from", "envs")
+
+    if source == "staging":
+        base = os.path.abspath(_get_staging_dir())
+    else:
+        eres = get_envs_dir()
+        if not eres["ok"]:
+            return jsonify({"message": eres["reason"]}), 400
+        base = os.path.abspath(eres["path"])
+
+    env_path = os.path.abspath(os.path.join(base, name))
+    if not env_path.startswith(base + os.sep):
+        raise APIError("Invalid environment path", status_code=400,
+                       details={"error": "path traversal blocked"})
+    if not os.path.isdir(env_path):
+        raise APIError("Environment not found", status_code=404,
+                       details={"error": f'No environment "{name}"'})
+
+    builder_path = os.path.join(env_path, "builder.json")
+    if not os.path.isfile(builder_path):
+        return jsonify({"exists": True, "builder": None,
+                        "message": "No builder.json (not block-built)."})
+
+    with open(builder_path) as f:
+        builder = json.load(f)
+    return jsonify({"exists": True, "builder": builder})
+
+
 def register_environment_routes(blueprint):
     """Register all environment-related routes to the blueprint"""
     blueprint.route('/environment/<environment>', methods=['GET'])(get_environment_route)
@@ -222,3 +386,6 @@ def register_environment_routes(blueprint):
     blueprint.route('/add_environment', methods=['POST'])(add_environment_route)
     blueprint.route('/get_more_envs_info', methods=['GET'])(get_more_envs_info_route)
     blueprint.route('/environment', methods=['DELETE'])(delete_environment_route)
+    blueprint.route('/stage_environment', methods=['POST'])(stage_environment_route)
+    blueprint.route('/promote_environment', methods=['POST'])(promote_environment_route)
+    blueprint.route('/load_environment_builder', methods=['GET'])(load_environment_builder_route)

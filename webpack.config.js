@@ -8,7 +8,10 @@ module.exports = (env, argv) => {
   
   return {
     mode: isProduction ? 'production' : 'development',
-    entry: "./src/index.js",
+    entry: {
+      main: "./src/index.js",
+      builder: "./src/environmentBuilder/index.js",
+    },
     output: {
       filename: "[name].bundle.js",
       path: path.resolve(__dirname, "static/dist"),
@@ -28,14 +31,27 @@ module.exports = (env, argv) => {
       splitChunks: {
         chunks: 'all',
         cacheGroups: {
+          // Don't extract shared *source* modules into common chunks. Our HTML
+          // templates load a fixed bundle list per page, so a shared src chunk
+          // (e.g. Composer, imported by both the main and builder entries) would
+          // be silently missing on the main page. Keep src inside each entry.
+          default: false,
           react: {
             test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
             name: 'react',
             chunks: 'all',
             priority: 10
           },
+          // Isolate Blockly into its own chunk so it only loads on the
+          // builder page and never bloats the main Composer bundle.
+          blockly: {
+            test: /[\\/]node_modules[\\/]blockly[\\/]/,
+            name: 'blockly',
+            chunks: 'all',
+            priority: 20
+          },
           vendors: {
-            test: /[\\/]node_modules[\\/](?!(react|react-dom)[\\/])/,
+            test: /[\\/]node_modules[\\/](?!(react|react-dom|blockly)[\\/])/,
             name: 'vendors',
             chunks: 'all',
             priority: -10

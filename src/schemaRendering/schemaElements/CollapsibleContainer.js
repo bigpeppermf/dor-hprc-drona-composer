@@ -47,14 +47,14 @@ function CollapsibleHeader({ title, isCollapsed, onToggle }) {
       alignItems: "center",
       marginBottom: "1rem",
       paddingBottom: "0.75rem",
-      borderBottom: "1px solid #dee2e6"
+      borderBottom: "1px solid var(--border, #dee2e6)"
     }}>
       <span style={{ fontSize: "1.25rem", fontWeight: "600" }}>{title}</span>
       <button
         onClick={onToggle}
         style={{
           padding: "0.5rem 1rem",
-          backgroundColor: "#500000",
+          backgroundColor: "var(--accent, #500000)",
           color: "white",
           borderRadius: "0.25rem",
           border: "none",

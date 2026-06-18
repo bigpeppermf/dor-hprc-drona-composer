@@ -68,60 +68,374 @@
       });
     </script>
     <style>
+      /* ===== Site theme tokens (switchable via navbar) ===== */
+      :root,
+      html[data-theme="light"] {
+        --app-bg: #d6d3c4;
+        --app-text: #2a2a2a;
+        --text-sub: #6b7280;
+        --surface: #ffffff;
+        --surface-muted: #f7f7f8;
+        --surface-code: #f4f5f7;
+        --border: #e3e3e6;
+        --navbar-bg: #500000;
+        --navbar-fg: #ffffff;
+        --accent: #500000;
+        --accent-fg: #ffffff;
+        --canvas-bg: #f7f7f8;
+        --canvas-grid: #e6e6e6;
+      }
+      html[data-theme="maroon"] {
+        --app-bg: #170d0f;
+        --app-text: #f1e9ea;
+        --text-sub: #b59aa0;
+        --surface: #241619;
+        --surface-muted: #1f1316;
+        --surface-code: #2a1a1e;
+        --border: #3a262b;
+        --navbar-bg: #2a0d0d;
+        --navbar-fg: #ffffff;
+        --accent: #b3325a;
+        --accent-fg: #ffffff;
+        --canvas-bg: #1d1316;
+        --canvas-grid: #3a262b;
+      }
+      html[data-theme="dark"] {
+        --app-bg: #1e1e1e;
+        --app-text: #e6e6e6;
+        --text-sub: #9aa0a6;
+        --surface: #252526;
+        --surface-muted: #2a2a2b;
+        --surface-code: #2d2d2e;
+        --border: #3a3a3c;
+        --navbar-bg: #2d2d30;
+        --navbar-fg: #ffffff;
+        --accent: #c2566f;
+        --accent-fg: #ffffff;
+        --canvas-bg: #1e1e1e;
+        --canvas-grid: #333333;
+      }
+
       /* Disable manual typing in the Drona working directory picker and hides the text typing area */
       .drona-dir-picker input[type="text"] {
         display: none !important;
       }
+
+      /* ---- Top navbar ---- */
+      body {
+        margin: 0;
+        background-color: var(--app-bg);
+        color: var(--app-text);
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+      .app-topnav {
+        display: flex;
+        align-items: stretch;
+        background-color: var(--navbar-bg);
+        color: var(--navbar-fg);
+        font-family: "Open Sans", sans-serif;
+        height: 64px;
+        padding: 0 0.5rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+      /* Brand doubles as a "home" button and fills the bar height */
+      .topnav-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        height: 100%;
+        padding: 0 1.25rem;
+        font-weight: 700;
+        font-size: 1.4rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #fff;
+        text-decoration: none;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .topnav-brand:hover,
+      .topnav-brand:focus {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        text-decoration: none;
+      }
+      .topnav-brand .topnav-cluster {
+        font-weight: 400;
+        font-size: 0.8rem;
+        letter-spacing: 0;
+        text-transform: none;
+        opacity: 0.7;
+      }
+      /* Tab links — same ideology as the old sidebar tabs */
+      .topnav-tabs {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-left: 1.25rem;
+        padding-left: 1.25rem;
+        border-left: 1px solid rgba(255, 255, 255, 0.18);
+      }
+      .topnav-link {
+        display: flex;
+        align-items: center;
+        padding: 0.45rem 1rem;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        opacity: 0.85;
+        transition: background 0.15s ease, opacity 0.15s ease;
+      }
+      .topnav-link:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        text-decoration: none;
+        opacity: 1;
+      }
+      .topnav-link.active {
+        background: rgba(255, 255, 255, 0.2);
+        font-weight: 700;
+        opacity: 1;
+      }
+      /* Logo pinned to the right */
+      .topnav-logo {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        padding: 0 0.75rem;
+      }
+      .topnav-logo img {
+        display: block;
+        height: 38px;
+        width: auto;
+      }
+      /* ---- Theme switcher (dropdown) ---- */
+      .topnav-theme {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-left: auto;
+        padding: 0 0.6rem;
+      }
+      .topnav-theme + .topnav-logo {
+        margin-left: 0;
+      }
+      .topnav-theme-label {
+        margin: 0;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        opacity: 0.75;
+      }
+      .theme-select {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 0.32rem 0.55rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .theme-select:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+      .theme-select:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.6);
+      }
+      /* Native dropdown list items render on white — keep them readable. */
+      .theme-select option {
+        color: #1a1a1a;
+        background: #fff;
+      }
+
+      /* ===== Theme-aware Composer chrome =====
+         Written with the theme vars so it applies in every theme (in light the
+         vars resolve to the original colors, so nothing changes there). Inline
+         styles on individual components still win — those are a later sweep. */
+      #main-container {
+        color: var(--app-text);
+      }
+      #main-container .card {
+        background: var(--surface);
+        color: var(--app-text);
+        border-color: var(--border);
+      }
+      #main-container .form-control,
+      #main-container select,
+      #main-container textarea,
+      #main-container input[type="text"],
+      #main-container input[type="number"],
+      #main-container input[type="search"] {
+        background: var(--surface);
+        color: var(--app-text);
+        border-color: var(--border);
+      }
+      #main-container .form-control::placeholder {
+        color: var(--text-sub);
+      }
+      #main-container .input-group-text {
+        background: var(--surface-muted);
+        color: var(--text-sub);
+        border-color: var(--border);
+      }
+      #main-container label,
+      #main-container h1,
+      #main-container h2,
+      #main-container h3,
+      #main-container h4,
+      #main-container h5 {
+        color: var(--app-text);
+      }
+      #main-container .text-muted,
+      #main-container small {
+        color: var(--text-sub) !important;
+      }
+      #main-container .table {
+        color: var(--app-text);
+      }
+      #main-container .table td,
+      #main-container .table th {
+        border-color: var(--border);
+      }
+      /* Modals + dropdowns render at the body level, so theme them globally. */
+      .modal-content,
+      .dropdown-menu {
+        background: var(--surface);
+        color: var(--app-text);
+        border-color: var(--border);
+      }
+      .modal-header,
+      .modal-footer {
+        border-color: var(--border);
+      }
+      .dropdown-item {
+        color: var(--app-text);
+      }
+      .dropdown-item:hover {
+        background: var(--surface-muted);
+        color: var(--app-text);
+      }
+      /* Code preview (CodeMirror) keeps its own light theme in light mode;
+         soften the surround so it doesn't glare on dark backdrops. */
+      html[data-theme="maroon"] .CodeMirror,
+      html[data-theme="dark"] .CodeMirror {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+      }
+      /* Bootstrap white/light utility classes used inside the form (drag-drop
+         containers, cards) — only remap on the dark themes. */
+      html[data-theme="maroon"] #main-container .bg-white,
+      html[data-theme="dark"] #main-container .bg-white,
+      html[data-theme="maroon"] #main-container .bg-light,
+      html[data-theme="dark"] #main-container .bg-light {
+        background-color: var(--surface) !important;
+        color: var(--app-text);
+      }
+      html[data-theme="maroon"] #main-container .border,
+      html[data-theme="dark"] #main-container .border {
+        border-color: var(--border) !important;
+      }
     </style>
+    <script>
+      // Apply the saved theme before first paint to avoid a flash.
+      (function () {
+        try {
+          var t = localStorage.getItem("drona-theme") || "light";
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
   </head>
 
-  <body style="background-color: #d6d3c4">
-    <header>
-      <nav
-        class="navbar navbar-dark"
-        style="
-          background-color: #500000;
-          font-family: 'Open Sans';
-          font-weight: 700;
-        "
-      >
-        <a class="navbar-brand" href="/">
-          <img
-            src="{{ url_for('static', filename='images/HPRC-Identity-ExternalLeft-Dark.svg') }}"
-            width="200"
-            class="d-inline-block align-top"
-            alt=""
-          />
-        </a>
-        <a class="navbar-brand mx-auto" href="">
-          <span class="text-uppercase"
-            >DRONA WORKFLOW ENGINE ({{ config.cluster_name }})</span
-          >
-        </a>
+  <body>
+    <script>
+         window.APP_ROOT = {{ request.script_root|tojson }};
+         document.dashboard_url = window.APP_ROOT;
+
+         document.file_app_url = "{{ config.file_app_url }}";
+         document.file_editor_url = "{{ config.file_editor_url }}";
+         document.user = "{{ config.user }}";
+         document.drona_dir = {{ config.drona_dir|tojson }}
+
+      window.CONFIG_STATUS_URL = "{{ url_for('job_composer.config_status') }}";
+      window.CONFIG_SAVE_URL = "{{ url_for('job_composer.config_save') }}";
+    </script>
+
+    <header class="app-topnav">
+      <a class="topnav-brand" href="{{ url_for('index') }}">
+        Drona Workflow Engine
+        <span class="topnav-cluster">{{ config.cluster_name }}</span>
+      </a>
+      <nav class="topnav-tabs">
+        <a
+          class="topnav-link {{ 'active' if request.endpoint == 'index' }}"
+          href="{{ url_for('index') }}"
+          >Composer</a
+        >
+        <a
+          class="topnav-link {{ 'active' if request.endpoint == 'builder' }}"
+          href="{{ url_for('builder') }}"
+          >Environment Builder</a
+        >
       </nav>
-
-      <script>
-           window.APP_ROOT = {{ request.script_root|tojson }};
-           document.dashboard_url = window.APP_ROOT;
-
-           document.file_app_url = "{{ config.file_app_url }}";
-           document.file_editor_url = "{{ config.file_editor_url }}";
-           document.user = "{{ config.user }}";
-           document.drona_dir = {{ config.drona_dir|tojson }}
-
-        window.CONFIG_STATUS_URL = "{{ url_for('job_composer.config_status') }}";
-        window.CONFIG_SAVE_URL = "{{ url_for('job_composer.config_save') }}";
-      </script>
-
-      <div id="main-container" class="container" role="main">
-        {% block content %}{% endblock %}
+      <div class="topnav-theme">
+        <label class="topnav-theme-label" for="theme-select">Theme</label>
+        <select id="theme-select" class="theme-select" aria-label="Theme">
+          <option value="light">☀ Light</option>
+          <option value="maroon">❖ Dark maroon</option>
+          <option value="dark">☾ Neutral dark</option>
+        </select>
       </div>
+      <a class="topnav-logo" href="{{ url_for('index') }}">
+        <img
+          src="{{ url_for('static', filename='images/HPRC-Identity-ExternalLeft-Dark.svg') }}"
+          alt="HPRC"
+        />
+      </a>
     </header>
+    <script>
+      // Theme switcher: persist choice + broadcast so JS apps (the builder) can react.
+      (function () {
+        var sel = document.getElementById("theme-select");
+        function apply(theme) {
+          document.documentElement.setAttribute("data-theme", theme);
+          try {
+            localStorage.setItem("drona-theme", theme);
+          } catch (e) {}
+          if (sel && sel.value !== theme) sel.value = theme;
+          window.dispatchEvent(
+            new CustomEvent("drona-theme-change", { detail: { theme: theme } })
+          );
+        }
+        var current = document.documentElement.getAttribute("data-theme") || "light";
+        apply(current);
+        if (sel) {
+          sel.addEventListener("change", function () {
+            apply(sel.value);
+          });
+        }
+      })();
+    </script>
+
+    <main id="main-container" class="{% block main_class %}container{% endblock %}" role="main">
+      {% block content %}{% endblock %}
+    </main>
+
     <footer class="footer mt-2"></footer>
 
+    {% block app_bundles %}
     <script src="{{url_for('static', filename='dist/vendors.bundle.js')}}"></script>
     <script src="{{url_for('static', filename='dist/react.bundle.js')}}"></script>
     <script src="{{url_for('static', filename='dist/main.bundle.js')}}"></script>
+    {% endblock %}
     <script src="{{ url_for('static', filename='jquery-3.4.1/jquery-3.4.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='bootstrap-4.4.1/js/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('static', filename='DataTables/datatables.min.js') }}"></script>

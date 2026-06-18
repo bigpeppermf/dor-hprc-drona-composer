@@ -1,0 +1,59 @@
+{% extends 'layout.html' %}
+
+{% block main_class %}builder-main{% endblock %}
+
+{% block content %}
+<style>
+  /* Full-screen builder: fill the viewport below the 64px navbar */
+  .builder-main {
+    max-width: none;
+    width: 100%;
+    height: calc(100vh - 64px);
+    padding: 0.75rem 1rem;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* The empty layout footer would add a sliver of scroll; hide it here */
+  .builder-main + .footer {
+    display: none;
+  }
+  .builder-header {
+    flex: 0 0 auto;
+    margin: 0 0 0.7rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+  .builder-header h4 {
+    margin: 0;
+    color: #500000;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+  .builder-header .builder-subtitle {
+    color: #6b7280;
+    font-size: 0.85rem;
+  }
+  #builder-root {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+</style>
+
+<div class="builder-header">
+  <h4>Environment Builder</h4>
+  <span class="builder-subtitle">
+    Snap together blocks to generate a Drona environment, preview it live, then stage &amp; promote.
+  </span>
+</div>
+<div id="builder-root"></div>
+{% endblock %}
+
+{% block app_bundles %}
+<script src="{{ url_for('static', filename='dist/vendors.bundle.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/react.bundle.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/blockly.bundle.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/builder.bundle.js') }}"></script>
+{% endblock %}
