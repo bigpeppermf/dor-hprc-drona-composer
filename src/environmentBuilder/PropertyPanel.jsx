@@ -4,6 +4,7 @@ import {
   splitAtom,
   validateCondition,
 } from "./conditionUtils";
+import { OPTION_TYPES, RETRIEVER_TYPES, parseExtraProps } from "./blocks";
 import { T, card, panelHeader, input as inputStyle } from "./theme";
 
 /**
@@ -33,6 +34,8 @@ export default function PropertyPanel({ block, tick, registry = [], onChange }) 
   }
 
   const isField = block.type === "schema_field";
+  const isContainer = block.type === "schema_container";
+  const isRaw = block.type === "schema_raw";
   const fieldType = isField ? block.getFieldValue("TYPE") : null;
   const name = block.getFieldValue("NAME");
 
@@ -73,7 +76,7 @@ export default function PropertyPanel({ block, tick, registry = [], onChange }) 
           </Labeled>
         )}
 
-        {isField && fieldType === "select" && (
+        {isField && OPTION_TYPES.has(fieldType) && (
           <Labeled label="Options (one per line: value|Label)">
             <textarea
               style={{ ...inputStyle, height: 110, fontFamily: "monospace" }}
@@ -84,14 +87,41 @@ export default function PropertyPanel({ block, tick, registry = [], onChange }) 
           </Labeled>
         )}
 
-        <Labeled label="Show this field when">
-          <ConditionEditor
-            condition={props.condition || ""}
-            registry={registry}
-            selfName={name}
-            onChange={(c) => update("condition", c)}
-          />
-        </Labeled>
+        {isField && RETRIEVER_TYPES.has(fieldType) && (
+          <Labeled label="Retriever (script name)">
+            <input
+              style={inputStyle}
+              value={props.retriever || ""}
+              placeholder="get_partitions"
+              onChange={(e) => update("retriever", e.target.value)}
+            />
+          </Labeled>
+        )}
+
+        {(isField || isContainer) && (
+          <>
+            <Labeled label="Show this field when">
+              <ConditionEditor
+                condition={props.condition || ""}
+                registry={registry}
+                selfName={name}
+                onChange={(c) => update("condition", c)}
+              />
+            </Labeled>
+
+            <AdvancedJson
+              value={props.extraProps || ""}
+              onChange={(v) => update("extraProps", v)}
+            />
+          </>
+        )}
+
+        {isRaw && (
+          <div style={{ ...metaStyle, borderBottom: "none", color: T.sub }}>
+            Edit this field's verbatim JSON directly on the block. Used for
+            constructs without a dedicated block; it round-trips unchanged.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -169,6 +199,34 @@ function ConditionEditor({ condition, registry, selfName, onChange }) {
       </button>
     </div>
   );
+}
+
+/** Collapsible "extra props (JSON)" editor — the lossless catch-all. */
+function AdvancedJson({ value, onChange }) {
+  const [open, setOpen] = useState(!!value);
+  const invalid = value.trim() && !isValidJsonObject(value);
+  return (
+    <div style={{ marginTop: 4 }}>
+      <button type="button" style={linkBtnStyle} onClick={() => setOpen((o) => !o)}>
+        {open ? "▾" : "▸"} Advanced — extra props (JSON)
+      </button>
+      {open && (
+        <>
+          <textarea
+            style={{ ...inputStyle, height: 90, fontFamily: "monospace", marginTop: 6 }}
+            value={value}
+            placeholder={'{"maxCount": 4}'}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          {invalid && <div style={warnStyle}>Invalid JSON — ignored until fixed.</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
+function isValidJsonObject(raw) {
+  return Object.keys(parseExtraProps(raw)).length > 0 || raw.trim() === "{}";
 }
 
 function ValueControl({ field, value, onChange }) {

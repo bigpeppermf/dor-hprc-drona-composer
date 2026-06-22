@@ -14,7 +14,10 @@ import * as Blockly from "blockly";
  * a schema is a nested object, not a flat script.
  */
 
-// Field types exposed in milestone 2 (the "flat" scalar types from componentsMap).
+// Full field palette (matches componentsMap in schemaRendering/schemaElements).
+// Phase A widens this from the original 6 "flat" types to every leaf field type
+// so existing environments can round-trip. jobNameLocation is a leaf (no nested
+// elements), so it lives here rather than as a container.
 export const FIELD_TYPES = [
   ["text", "text"],
   ["number", "number"],
@@ -22,11 +25,45 @@ export const FIELD_TYPES = [
   ["checkbox", "checkbox"],
   ["textarea", "textarea"],
   ["time", "time"],
+  ["radioGroup", "radioGroup"],
+  ["checkboxGroup", "checkboxGroup"],
+  ["autocompleteSelect", "autocompleteSelect"],
+  ["dynamicSelect", "dynamicSelect"],
+  ["dynamicRadioGroup", "dynamicRadioGroup"],
+  ["dynamicCheckboxGroup", "dynamicCheckboxGroup"],
+  ["dynamicViewer", "dynamicViewer"],
+  ["module", "module"],
+  ["unit", "unit"],
+  ["picker", "picker"],
+  ["uploader", "uploader"],
+  ["staticText", "staticText"],
+  ["hidden", "hidden"],
+  ["jobNameLocation", "jobNameLocation"],
 ];
+
+// Field types that carry a static "options" list (value|Label).
+export const OPTION_TYPES = new Set([
+  "select",
+  "radioGroup",
+  "checkboxGroup",
+  "autocompleteSelect",
+]);
+
+// Field types whose choices come from a retriever script (a name string).
+export const RETRIEVER_TYPES = new Set([
+  "dynamicSelect",
+  "dynamicRadioGroup",
+  "dynamicCheckboxGroup",
+  "dynamicViewer",
+  "autocompleteSelect",
+]);
 
 const CONTAINER_TYPES = [
   ["container", "container"],
   ["row", "rowContainer"],
+  ["collapsible row", "collapsibleRowContainer"],
+  ["collapsible col", "collapsibleColContainer"],
+  ["drag & drop", "dragDropContainer"],
 ];
 
 // --- Dynamic field dropdown (map_field) ---------------------------------
@@ -90,6 +127,21 @@ export function defineBlocks() {
       nextStatement: null,
       style: "container_block",
       tooltip: "Groups fields together (container / row).",
+    },
+    {
+      // Escape hatch: a whole field defined as verbatim JSON. Used for import
+      // fidelity when a construct has no dedicated block. NAME keys it in the
+      // schema; JSON is its value object.
+      type: "schema_raw",
+      message0: "raw field %1 json %2",
+      args0: [
+        { type: "field_input", name: "NAME", text: "field1" },
+        { type: "field_input", name: "JSON", text: '{"type":"text","name":"field1"}' },
+      ],
+      previousStatement: null,
+      nextStatement: null,
+      style: "field_block",
+      tooltip: "A field defined as raw JSON (for constructs without a block).",
     },
     // --- Map blocks (milestone 4) ---
     {
@@ -246,7 +298,10 @@ export const toolbox = {
       kind: "category",
       name: "Fields",
       colour: "230",
-      contents: [{ kind: "block", type: "schema_field" }],
+      contents: [
+        { kind: "block", type: "schema_field" },
+        { kind: "block", type: "schema_raw" },
+      ],
     },
     {
       kind: "category",
@@ -296,6 +351,17 @@ function getProps(block) {
   return block.builderProps || {};
 }
 
+/** Parse the "Advanced → extra props (JSON)" blob; {} on empty/invalid. */
+export function parseExtraProps(raw) {
+  if (!raw || !raw.trim()) return {};
+  try {
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
+  } catch (e) {
+    return {};
+  }
+}
+
 /** Parse the options textarea ("value|Label" per line) into [{value,label}]. */
 function parseOptions(raw) {
   if (!raw) return [];
@@ -315,10 +381,14 @@ function blockToEntry(block) {
   if (block.type === "schema_field") {
     const name = block.getFieldValue("NAME");
     const type = block.getFieldValue("TYPE");
-    const value = { type, name, label: extras.label || name };
+    // Spread any extra-props JSON first so dedicated controls win over it.
+    const value = { ...parseExtraProps(extras.extraProps), type, name };
+    value.label = extras.label || value.label || name;
     if (extras.help) value.help = extras.help;
     if (extras.condition) value.condition = extras.condition;
-    if (type === "select") value.options = parseOptions(extras.options);
+    if (OPTION_TYPES.has(type)) value.options = parseOptions(extras.options);
+    if (RETRIEVER_TYPES.has(type) && extras.retriever)
+      value.retriever = extras.retriever;
     return { key: name, value };
   }
 
@@ -327,6 +397,7 @@ function blockToEntry(block) {
     const type = block.getFieldValue("CTYPE");
     const first = block.getInputTargetBlock("ELEMENTS");
     const value = {
+      ...parseExtraProps(extras.extraProps),
       type,
       name,
       label: extras.label || name,
@@ -334,6 +405,12 @@ function blockToEntry(block) {
     };
     if (extras.condition) value.condition = extras.condition;
     return { key: name, value };
+  }
+
+  if (block.type === "schema_raw") {
+    const name = block.getFieldValue("NAME");
+    const raw = parseExtraProps(block.getFieldValue("JSON"));
+    return { key: name, value: { name, ...raw } };
   }
 
   return null;
@@ -377,9 +454,13 @@ export function buildRegistry(workspace) {
           fields.push({
             name,
             type,
-            options: type === "select" ? parseOptions(extras.options) : [],
+            options: OPTION_TYPES.has(type) ? parseOptions(extras.options) : [],
           });
         }
+      } else if (block.type === "schema_raw") {
+        const name = block.getFieldValue("NAME");
+        const raw = parseExtraProps(block.getFieldValue("JSON"));
+        if (name) fields.push({ name, type: raw.type || "raw", options: [] });
       } else if (block.type === "schema_container") {
         const name = block.getFieldValue("NAME");
         if (name) {
