@@ -238,6 +238,49 @@
         --mosaic-color-tooltip-text: #fdf2f8;
         --mosaic-color-overlay: rgba(0, 0, 0, 0.5);
       }
+      /* Dark maroon — the original dark-maroon look, kept as an extra theme.
+         Rose accent (#b3325a) for buttons/links, but a distinct deep-maroon
+         navbar (overriding the navbar=primary alias). */
+      html[data-theme="maroon"] {
+        --mosaic-color-app-bg: #170d0f;
+        --mosaic-color-surface-bg: #241619;
+        --mosaic-color-surface-bg-hover: #30202a;
+        --mosaic-color-text-primary: #f1e9ea;
+        --mosaic-color-text-secondary: #d8c2c7;
+        --mosaic-color-text-muted: #b59aa0;
+        --mosaic-color-text-inverse: #170d0f;
+        --mosaic-color-border: #3a262b;
+        --mosaic-color-border-strong: #51363c;
+        --mosaic-color-table-header-bg: #1f1316;
+        --mosaic-color-link: #e08aa0;
+        --mosaic-color-primary: #b3325a;
+        --mosaic-color-primary-hover: #c64a70;
+        --mosaic-color-primary-text: #ffffff;
+        --mosaic-color-selected-bg: rgba(179, 50, 90, 0.22);
+        --mosaic-color-selected-text: #f1d6de;
+        --mosaic-color-icon: #c9aeb4;
+        --mosaic-color-icon-active: #f1e9ea;
+        --mosaic-color-warning-text: #f3b08a;
+        --mosaic-color-warning-text-soft: #fca5a5;
+        --mosaic-color-success-text: #86efac;
+        --mosaic-color-success-bg: #3f7f4a;
+        --mosaic-color-success-bg-hover: #4d9d5a;
+        --mosaic-color-caution-text: #f3c316;
+        --mosaic-color-caution-bg: #d9a012;
+        --mosaic-color-danger-text: #fca5a5;
+        --mosaic-color-danger-bg: #a83232;
+        --mosaic-color-danger-bg-hover: #c03a3a;
+        --mosaic-color-alert-bg: rgba(127, 29, 29, 0.2);
+        --mosaic-color-alert-border: #732f2f;
+        --mosaic-color-alert-text: #fca5a5;
+        --mosaic-color-alert-text-secondary: #f87171;
+        --mosaic-color-tooltip-bg: #100a0c;
+        --mosaic-color-tooltip-text: #f1e9ea;
+        --mosaic-color-overlay: rgba(0, 0, 0, 0.5);
+        /* keep the distinct deep-maroon navbar (don't tie it to the accent) */
+        --navbar-bg: #2a0d0d;
+        --navbar-fg: #ffffff;
+      }
 
       /* Disable manual typing in the Drona working directory picker and hides the text typing area */
       .drona-dir-picker input[type="text"] {
@@ -468,7 +511,7 @@
     <script>
       // Apply the saved theme before first paint to avoid a flash.
       (function () {
-        var VALID = ["light", "dark", "lavender", "pink"];
+        var VALID = ["light", "dark", "maroon", "lavender", "pink"];
         var t = "light";
         try {
           var saved = localStorage.getItem("drona-theme");
@@ -515,6 +558,7 @@
         <select id="theme-select" class="theme-select" aria-label="Theme">
           <option value="light">☀ Light</option>
           <option value="dark">☾ Dark</option>
+          <option value="maroon">✦ Dark Maroon</option>
           <option value="lavender">❖ Dark Lavender</option>
           <option value="pink">❀ Dark Pink</option>
         </select>
