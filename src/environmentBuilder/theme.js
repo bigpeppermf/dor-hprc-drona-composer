@@ -9,6 +9,7 @@
 export const T = {
   maroon: "var(--accent)",
   accent: "var(--accent)",
+  accentFg: "var(--accent-fg)",
   ink: "var(--app-text)",
   sub: "var(--text-sub)",
   hint: "var(--text-sub)",
@@ -48,8 +49,8 @@ export const panelHeader = {
   alignItems: "center",
   justifyContent: "space-between",
   padding: "0.55rem 0.85rem",
-  background: T.maroon,
-  color: "#fff",
+  background: T.accent,
+  color: T.accentFg,
   fontWeight: 700,
   fontSize: "0.72rem",
   letterSpacing: "0.06em",
@@ -65,7 +66,7 @@ export const input = {
   borderRadius: 6,
   fontSize: "0.85rem",
   color: T.ink,
-  background: "#fff",
+  background: T.surface,
   boxSizing: "border-box",
   outline: "none",
 };
@@ -98,8 +99,8 @@ export function solidButton(enabled = true) {
     fontSize: "0.8rem",
     fontWeight: 700,
     cursor: enabled ? "pointer" : "not-allowed",
-    background: enabled ? T.maroon : "#d9cccc",
-    color: "#fff",
+    background: enabled ? T.accent : "var(--mosaic-color-border-strong)",
+    color: enabled ? T.accentFg : "var(--mosaic-color-text-muted)",
     transition: "background 0.15s ease",
   };
 }

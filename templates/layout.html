@@ -68,52 +68,175 @@
       });
     </script>
     <style>
-      /* ===== Site theme tokens (switchable via navbar) ===== */
+      /* ===== Mosaic design-system theme tokens (shared with the dashboard) =====
+         Each theme defines the full --mosaic-color-* palette. The builder/app
+         use a small set of aliases (below) that point at the mosaic tokens, so
+         everything follows the active theme without per-theme duplication. */
+      :root {
+        /* App/builder aliases -> mosaic tokens (theme-independent indirection) */
+        --app-bg: var(--mosaic-color-app-bg);
+        --app-text: var(--mosaic-color-text-primary);
+        --text-sub: var(--mosaic-color-text-muted);
+        --surface: var(--mosaic-color-surface-bg);
+        --surface-muted: var(--mosaic-color-surface-bg-hover);
+        --surface-code: var(--mosaic-color-table-header-bg);
+        --border: var(--mosaic-color-border);
+        --navbar-bg: var(--mosaic-color-primary);
+        --navbar-fg: var(--mosaic-color-primary-text);
+        --accent: var(--mosaic-color-primary);
+        --accent-fg: var(--mosaic-color-primary-text);
+        --canvas-bg: var(--mosaic-color-app-bg);
+        --canvas-grid: var(--mosaic-color-border);
+      }
+
       :root,
       html[data-theme="light"] {
-        --app-bg: #d6d3c4;
-        --app-text: #2a2a2a;
-        --text-sub: #6b7280;
-        --surface: #ffffff;
-        --surface-muted: #f7f7f8;
-        --surface-code: #f4f5f7;
-        --border: #e3e3e6;
-        --navbar-bg: #500000;
-        --navbar-fg: #ffffff;
-        --accent: #500000;
-        --accent-fg: #ffffff;
-        --canvas-bg: #f7f7f8;
-        --canvas-grid: #e6e6e6;
-      }
-      html[data-theme="maroon"] {
-        --app-bg: #170d0f;
-        --app-text: #f1e9ea;
-        --text-sub: #b59aa0;
-        --surface: #241619;
-        --surface-muted: #1f1316;
-        --surface-code: #2a1a1e;
-        --border: #3a262b;
-        --navbar-bg: #2a0d0d;
-        --navbar-fg: #ffffff;
-        --accent: #b3325a;
-        --accent-fg: #ffffff;
-        --canvas-bg: #1d1316;
-        --canvas-grid: #3a262b;
+        --mosaic-color-app-bg: #f6f7f9;
+        --mosaic-color-surface-bg: #ffffff;
+        --mosaic-color-surface-bg-hover: #eef1f5;
+        --mosaic-color-text-primary: #172033;
+        --mosaic-color-text-secondary: #4b5565;
+        --mosaic-color-text-muted: #6b7280;
+        --mosaic-color-text-inverse: #ffffff;
+        --mosaic-color-border: #d9dee7;
+        --mosaic-color-border-strong: #b7c0cf;
+        --mosaic-color-table-header-bg: #edf1f6;
+        --mosaic-color-link: #003c71;
+        --mosaic-color-primary: #500000;
+        --mosaic-color-primary-hover: #6b1116;
+        --mosaic-color-primary-text: #ffffff;
+        --mosaic-color-selected-bg: rgba(80, 0, 0, 0.1);
+        --mosaic-color-selected-text: #500000;
+        --mosaic-color-icon: #536072;
+        --mosaic-color-icon-active: #172033;
+        --mosaic-color-warning-text: #500000;
+        --mosaic-color-warning-text-soft: #b45309;
+        --mosaic-color-success-text: #14733f;
+        --mosaic-color-success-bg: #2f8f55;
+        --mosaic-color-success-bg-hover: #267747;
+        --mosaic-color-caution-text: #9a6700;
+        --mosaic-color-caution-bg: #d99a12;
+        --mosaic-color-danger-text: #b4232a;
+        --mosaic-color-danger-bg: #c8373e;
+        --mosaic-color-danger-bg-hover: #a9272e;
+        --mosaic-color-alert-bg: #fef2f2;
+        --mosaic-color-alert-border: #c8373e;
+        --mosaic-color-alert-text: #8f171d;
+        --mosaic-color-alert-text-secondary: #a9272e;
+        --mosaic-color-tooltip-bg: #172033;
+        --mosaic-color-tooltip-text: #ffffff;
+        --mosaic-color-overlay: rgba(0, 0, 0, 0.5);
       }
       html[data-theme="dark"] {
-        --app-bg: #1e1e1e;
-        --app-text: #e6e6e6;
-        --text-sub: #9aa0a6;
-        --surface: #252526;
-        --surface-muted: #2a2a2b;
-        --surface-code: #2d2d2e;
-        --border: #3a3a3c;
-        --navbar-bg: #2d2d30;
-        --navbar-fg: #ffffff;
-        --accent: #c2566f;
-        --accent-fg: #ffffff;
-        --canvas-bg: #1e1e1e;
-        --canvas-grid: #333333;
+        --mosaic-color-app-bg: #202020;
+        --mosaic-color-surface-bg: #2a2a2a;
+        --mosaic-color-surface-bg-hover: #333333;
+        --mosaic-color-text-primary: #ffffff;
+        --mosaic-color-text-secondary: #d1d1d1;
+        --mosaic-color-text-muted: #a6a6a6;
+        --mosaic-color-text-inverse: #111827;
+        --mosaic-color-border: #3e3e3e;
+        --mosaic-color-border-strong: #505050;
+        --mosaic-color-table-header-bg: #242424;
+        --mosaic-color-link: #f3a6a6;
+        --mosaic-color-primary: #500000;
+        --mosaic-color-primary-hover: #732f2f;
+        --mosaic-color-primary-text: #ffffff;
+        --mosaic-color-selected-bg: rgba(80, 0, 0, 0.42);
+        --mosaic-color-selected-text: #ffffff;
+        --mosaic-color-icon: #d1d1d1;
+        --mosaic-color-icon-active: #ffffff;
+        --mosaic-color-warning-text: #f3a6a6;
+        --mosaic-color-warning-text-soft: #fca5a5;
+        --mosaic-color-success-text: #86efac;
+        --mosaic-color-success-bg: #3f7f33;
+        --mosaic-color-success-bg-hover: #4d9d33;
+        --mosaic-color-caution-text: #f3a316;
+        --mosaic-color-caution-bg: #d99012;
+        --mosaic-color-danger-text: #fca5a5;
+        --mosaic-color-danger-bg: #a83232;
+        --mosaic-color-danger-bg-hover: #c03a3a;
+        --mosaic-color-alert-bg: rgba(127, 29, 29, 0.2);
+        --mosaic-color-alert-border: #732f2f;
+        --mosaic-color-alert-text: #fca5a5;
+        --mosaic-color-alert-text-secondary: #f87171;
+        --mosaic-color-tooltip-bg: #151515;
+        --mosaic-color-tooltip-text: #ffffff;
+        --mosaic-color-overlay: rgba(0, 0, 0, 0.5);
+      }
+      html[data-theme="lavender"] {
+        --mosaic-color-app-bg: #15121d;
+        --mosaic-color-surface-bg: #211c2b;
+        --mosaic-color-surface-bg-hover: #2c2540;
+        --mosaic-color-text-primary: #f5f3ff;
+        --mosaic-color-text-secondary: #ddd6fe;
+        --mosaic-color-text-muted: #b4abc8;
+        --mosaic-color-text-inverse: #15121d;
+        --mosaic-color-border: #3b3353;
+        --mosaic-color-border-strong: #51466f;
+        --mosaic-color-table-header-bg: #2a233b;
+        --mosaic-color-link: #c4b5fd;
+        --mosaic-color-primary: #c4b5fd;
+        --mosaic-color-primary-hover: #a78bfa;
+        --mosaic-color-primary-text: #15121d;
+        --mosaic-color-selected-bg: rgba(167, 139, 250, 0.22);
+        --mosaic-color-selected-text: #ddd6fe;
+        --mosaic-color-icon: #d8d0ee;
+        --mosaic-color-icon-active: #f5f3ff;
+        --mosaic-color-warning-text: #fdba74;
+        --mosaic-color-warning-text-soft: #fb923c;
+        --mosaic-color-success-text: #bbf7d0;
+        --mosaic-color-success-bg: #34d399;
+        --mosaic-color-success-bg-hover: #10b981;
+        --mosaic-color-caution-text: #fde68a;
+        --mosaic-color-caution-bg: #f59e0b;
+        --mosaic-color-danger-text: #fbcfe8;
+        --mosaic-color-danger-bg: #ec4899;
+        --mosaic-color-danger-bg-hover: #db2777;
+        --mosaic-color-alert-bg: rgba(236, 72, 153, 0.14);
+        --mosaic-color-alert-border: #f472b6;
+        --mosaic-color-alert-text: #f9a8d4;
+        --mosaic-color-alert-text-secondary: #f472b6;
+        --mosaic-color-tooltip-bg: #0f0b16;
+        --mosaic-color-tooltip-text: #f5f3ff;
+        --mosaic-color-overlay: rgba(0, 0, 0, 0.5);
+      }
+      html[data-theme="pink"] {
+        --mosaic-color-app-bg: #1a1423;
+        --mosaic-color-surface-bg: #241a30;
+        --mosaic-color-surface-bg-hover: #31213f;
+        --mosaic-color-text-primary: #fdf2f8;
+        --mosaic-color-text-secondary: #fbcfe8;
+        --mosaic-color-text-muted: #d8b4c9;
+        --mosaic-color-text-inverse: #1a1423;
+        --mosaic-color-border: #4a334f;
+        --mosaic-color-border-strong: #66435f;
+        --mosaic-color-table-header-bg: #31213f;
+        --mosaic-color-link: #f9a8d4;
+        --mosaic-color-primary: #f9a8d4;
+        --mosaic-color-primary-hover: #f472b6;
+        --mosaic-color-primary-text: #1a1423;
+        --mosaic-color-selected-bg: rgba(244, 114, 182, 0.2);
+        --mosaic-color-selected-text: #fbcfe8;
+        --mosaic-color-icon: #fbcfe8;
+        --mosaic-color-icon-active: #fdf2f8;
+        --mosaic-color-warning-text: #f9a8d4;
+        --mosaic-color-warning-text-soft: #f9a8d4;
+        --mosaic-color-success-text: #bbf7d0;
+        --mosaic-color-success-bg: #34d399;
+        --mosaic-color-success-bg-hover: #10b981;
+        --mosaic-color-caution-text: #fce7f3;
+        --mosaic-color-caution-bg: #f9a8d4;
+        --mosaic-color-danger-text: #fbcfe8;
+        --mosaic-color-danger-bg: #db2777;
+        --mosaic-color-danger-bg-hover: #be185d;
+        --mosaic-color-alert-bg: rgba(190, 24, 93, 0.16);
+        --mosaic-color-alert-border: #ec4899;
+        --mosaic-color-alert-text: #f9a8d4;
+        --mosaic-color-alert-text-secondary: #f472b6;
+        --mosaic-color-tooltip-bg: #140f1c;
+        --mosaic-color-tooltip-text: #fdf2f8;
+        --mosaic-color-overlay: rgba(0, 0, 0, 0.5);
       }
 
       /* Disable manual typing in the Drona working directory picker and hides the text typing area */
@@ -149,7 +272,7 @@
         font-size: 1.4rem;
         letter-spacing: 0.5px;
         text-transform: uppercase;
-        color: #fff;
+        color: var(--navbar-fg);
         text-decoration: none;
         background: transparent;
         border: none;
@@ -158,8 +281,8 @@
       }
       .topnav-brand:hover,
       .topnav-brand:focus {
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff;
+        background: color-mix(in srgb, var(--navbar-fg) 12%, transparent);
+        color: var(--navbar-fg);
         text-decoration: none;
       }
       .topnav-brand .topnav-cluster {
@@ -176,13 +299,13 @@
         gap: 0.4rem;
         margin-left: 1.25rem;
         padding-left: 1.25rem;
-        border-left: 1px solid rgba(255, 255, 255, 0.18);
+        border-left: 1px solid color-mix(in srgb, var(--navbar-fg) 18%, transparent);
       }
       .topnav-link {
         display: flex;
         align-items: center;
         padding: 0.45rem 1rem;
-        color: #fff;
+        color: var(--navbar-fg);
         text-decoration: none;
         border-radius: 6px;
         font-size: 0.95rem;
@@ -190,13 +313,13 @@
         transition: background 0.15s ease, opacity 0.15s ease;
       }
       .topnav-link:hover {
-        background: rgba(255, 255, 255, 0.12);
-        color: #fff;
+        background: color-mix(in srgb, var(--navbar-fg) 14%, transparent);
+        color: var(--navbar-fg);
         text-decoration: none;
         opacity: 1;
       }
       .topnav-link.active {
-        background: rgba(255, 255, 255, 0.2);
+        background: color-mix(in srgb, var(--navbar-fg) 22%, transparent);
         font-weight: 700;
         opacity: 1;
       }
@@ -232,9 +355,9 @@
         opacity: 0.75;
       }
       .theme-select {
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: color-mix(in srgb, var(--navbar-fg) 12%, transparent);
+        color: var(--navbar-fg);
+        border: 1px solid color-mix(in srgb, var(--navbar-fg) 30%, transparent);
         border-radius: 6px;
         padding: 0.32rem 0.55rem;
         font-size: 0.85rem;
@@ -242,16 +365,16 @@
         transition: background 0.15s ease;
       }
       .theme-select:hover {
-        background: rgba(255, 255, 255, 0.18);
+        background: color-mix(in srgb, var(--navbar-fg) 20%, transparent);
       }
       .theme-select:focus {
         outline: none;
-        border-color: rgba(255, 255, 255, 0.6);
+        border-color: color-mix(in srgb, var(--navbar-fg) 60%, transparent);
       }
-      /* Native dropdown list items render on white — keep them readable. */
+      /* Native dropdown list items render on the surface color — keep readable. */
       .theme-select option {
-        color: #1a1a1a;
-        background: #fff;
+        color: var(--mosaic-color-text-primary);
+        background: var(--mosaic-color-surface-bg);
       }
 
       /* ===== Theme-aware Composer chrome =====
@@ -345,12 +468,13 @@
     <script>
       // Apply the saved theme before first paint to avoid a flash.
       (function () {
+        var VALID = ["light", "dark", "lavender", "pink"];
+        var t = "light";
         try {
-          var t = localStorage.getItem("drona-theme") || "light";
-          document.documentElement.setAttribute("data-theme", t);
-        } catch (e) {
-          document.documentElement.setAttribute("data-theme", "light");
-        }
+          var saved = localStorage.getItem("drona-theme");
+          if (VALID.indexOf(saved) !== -1) t = saved;
+        } catch (e) {}
+        document.documentElement.setAttribute("data-theme", t);
       })();
     </script>
   </head>
@@ -390,8 +514,9 @@
         <label class="topnav-theme-label" for="theme-select">Theme</label>
         <select id="theme-select" class="theme-select" aria-label="Theme">
           <option value="light">☀ Light</option>
-          <option value="maroon">❖ Dark maroon</option>
-          <option value="dark">☾ Neutral dark</option>
+          <option value="dark">☾ Dark</option>
+          <option value="lavender">❖ Dark Lavender</option>
+          <option value="pink">❀ Dark Pink</option>
         </select>
       </div>
       <a class="topnav-logo" href="{{ url_for('index') }}">
