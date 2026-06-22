@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { importEnv } from "./importEnv";
 import { T, solidButton } from "./theme";
 
 /**
@@ -51,26 +52,35 @@ export default function SaveBar({
     return data;
   };
 
+  const getJson = async (path) => {
+    const res = await fetch(`${base}/${path}`, { credentials: "same-origin" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.details?.error || data?.message || `HTTP ${res.status}`);
+    return data;
+  };
+
   const loadByName = async (envName) => {
     const n = (envName || "").trim();
     if (!n) return;
     setBusy(true);
     setStatus(null);
     try {
-      const res = await fetch(
-        `${base}/load_environment_builder?name=${encodeURIComponent(n)}`,
-        { credentials: "same-origin" }
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.details?.error || data?.message || `HTTP ${res.status}`);
-      if (!data.builder)
-        throw new Error(
-          data.message || `"${n}" wasn't built with blocks, so it can't be edited here.`
-        );
-      onLoad?.(data.builder);
+      // Prefer saved blocks (builder.json); fall back to reconstructing from
+      // the env's files for hand-authored / imported-from-repo environments.
+      const saved = await getJson(`load_environment_builder?name=${encodeURIComponent(n)}`);
+      if (saved.builder) {
+        onLoad?.(saved.builder);
+        setStatus({ kind: "ok", text: `Loaded "${n}" from saved blocks.` });
+      } else {
+        const files = await getJson(`environment_source?name=${encodeURIComponent(n)}`);
+        onLoad?.(importEnv(files));
+        setStatus({
+          kind: "ok",
+          text: `Imported "${n}" from its files. Review, then Stage to save as blocks.`,
+        });
+      }
       setName(n);
       setStaged(false);
-      setStatus({ kind: "ok", text: `Loaded "${n}" onto the canvas.` });
     } catch (e) {
       setStatus({ kind: "err", text: e.message });
     } finally {

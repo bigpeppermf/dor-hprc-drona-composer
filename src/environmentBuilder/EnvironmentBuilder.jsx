@@ -16,6 +16,7 @@ import SaveBar from "./SaveBar";
 import Composer from "../schemaRendering/Composer";
 import { validateAll, countByLevel } from "./validate";
 import { makeBlocklyTheme } from "./blocklyTheme";
+import { collectDropdownSeeds } from "./importEnv";
 import { T, card, panelHeader, codeBlock, input, cssVar, hint as hintStyle } from "./theme";
 
 /**
@@ -115,6 +116,11 @@ export default function EnvironmentBuilder() {
   const onLoad = (builder) => {
     const ws = workspaceRef.current;
     if (!ws || !builder) return;
+    // Seed the dynamic dropdowns from the incoming blocks first, so map_field
+    // ($field) and [KEY] selections aren't dropped during deserialization.
+    const { fieldNames, mapKeys } = collectDropdownSeeds(builder);
+    setRegistryForDropdowns(fieldNames.map((n) => ({ name: n })));
+    setMapKeysForDropdowns(mapKeys);
     ws.clear();
     Blockly.serialization.workspaces.load(builder, ws);
     rebuild();

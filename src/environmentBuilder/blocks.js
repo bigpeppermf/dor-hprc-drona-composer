@@ -66,6 +66,10 @@ const CONTAINER_TYPES = [
   ["drag & drop", "dragDropContainer"],
 ];
 
+// Quick membership sets (used by the reverse importer).
+export const FIELD_TYPE_SET = new Set(FIELD_TYPES.map((t) => t[1]));
+export const CONTAINER_TYPE_SET = new Set(CONTAINER_TYPES.map((t) => t[1]));
+
 // --- Dynamic field dropdown (map_field) ---------------------------------
 // Blockly dropdowns need their options at open-time. We keep a module-level
 // list of declared field names, refreshed from the registry on every workspace
@@ -228,6 +232,22 @@ export function defineBlocks() {
       tooltip: "A raw driver.sh line (for custom submission logic).",
     },
   ]);
+
+  // Persist block.builderProps (label/help/condition/options/retriever/extra)
+  // through Blockly serialization so save/load and import keep scalar props.
+  // Attached directly (not via an extension — Blockly rejects regular
+  // extensions that add saveExtraState/loadExtraState).
+  const saveProps = function () {
+    const p = this.builderProps;
+    return p && Object.keys(p).length ? { props: p } : null;
+  };
+  const loadProps = function (state) {
+    this.builderProps = (state && state.props) || {};
+  };
+  ["schema_field", "schema_container"].forEach((t) => {
+    Blockly.Blocks[t].saveExtraState = saveProps;
+    Blockly.Blocks[t].loadExtraState = loadProps;
+  });
 
   // Standard sbatch driver — emits the common boilerplate as one block.
   Blockly.Blocks["driver_standard"] = {
@@ -537,7 +557,7 @@ export function mapKeyList(workspace) {
 
 // --- Template / driver construction -------------------------------------
 
-const DRIVER_STANDARD = [
+export const DRIVER_STANDARD = [
   "#!/bin/bash",
   "source /etc/profile",
   "",

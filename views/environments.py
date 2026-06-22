@@ -379,6 +379,50 @@ def load_environment_builder_route():
     return jsonify({"exists": True, "builder": builder})
 
 
+@handle_api_error
+def environment_source_route():
+    """
+    Phase B (reverse-import): return a user environment's four source files so
+    the builder can reconstruct it as blocks. schema/map are parsed JSON;
+    template/driver are raw text. Missing files come back empty.
+    """
+    name = _validate_env_name(request.args.get("name"))
+
+    eres = get_envs_dir()
+    if not eres["ok"]:
+        return jsonify({"message": eres["reason"]}), 400
+    base = os.path.abspath(eres["path"])
+    env_path = os.path.abspath(os.path.join(base, name))
+    if not env_path.startswith(base + os.sep):
+        raise APIError("Invalid environment path", status_code=400,
+                       details={"error": "path traversal blocked"})
+    if not os.path.isdir(env_path):
+        raise APIError("Environment not found", status_code=404,
+                       details={"error": f'No environment "{name}"'})
+
+    def read_json(fname):
+        p = os.path.join(env_path, fname)
+        if not os.path.isfile(p):
+            return {}
+        with open(p) as f:
+            return json.load(f)
+
+    def read_text(fname):
+        p = os.path.join(env_path, fname)
+        if not os.path.isfile(p):
+            return ""
+        with open(p) as f:
+            return f.read()
+
+    return jsonify({
+        "name": name,
+        "schema": read_json("schema.json"),
+        "map": read_json("map.json"),
+        "template": read_text("template.txt"),
+        "driver": read_text("driver.sh"),
+    })
+
+
 def register_environment_routes(blueprint):
     """Register all environment-related routes to the blueprint"""
     blueprint.route('/environment/<environment>', methods=['GET'])(get_environment_route)
@@ -389,3 +433,4 @@ def register_environment_routes(blueprint):
     blueprint.route('/stage_environment', methods=['POST'])(stage_environment_route)
     blueprint.route('/promote_environment', methods=['POST'])(promote_environment_route)
     blueprint.route('/load_environment_builder', methods=['GET'])(load_environment_builder_route)
+    blueprint.route('/environment_source', methods=['GET'])(environment_source_route)
