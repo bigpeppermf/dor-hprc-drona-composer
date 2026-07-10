@@ -1,45 +1,39 @@
 #!/bin/bash
+# Renders seff CPU/memory efficiency tiles for each job id in $JOBIDS.
+HTML_TEMPLATE="${HTML_TEMPLATE:-$DRONA_RUNTIME_DIR/html_templates/slurm-seff-template.html}"
 
-${HTML_TEMPLATE="$DRONA_RUNTIME_DIR/html_templates/slurm-seff-template.html"}
-ROWS=""
-
-# Function to pick color based on efficiency percentage
-get_color_class() {
-    local pct=$1
-    if (( $(echo "$pct > 70" | bc -l) )); then echo "eff-good"
-    elif (( $(echo "$pct > 30" | bc -l) )); then echo "eff-warn"
-    else echo "eff-poor"; fi
+bar_class() {
+  local pct="${1%%.*}"; [[ -z "$pct" ]] && pct=0
+  if   (( pct > 70 )); then echo "dm-bar--mem"
+  elif (( pct > 30 )); then echo "dm-bar--io"
+  else echo "dm-bar--accent"; fi
 }
 
-for JID in "${JOBIDS[@]}"; do
-    # Capture seff output
-    SEFF_OUT=$(seff "$JID" 2>/dev/null)
-    
-    if [[ -n "$SEFF_OUT" ]]; then
-        # Extract percentages (e.g., "CPU Efficiency: 85.2% of 1-00:00:00 core-walltime")
-        CPU_EFF=$(echo "$SEFF_OUT" | grep "CPU Efficiency" | awk '{print $3}' | tr -d '%')
-        MEM_EFF=$(echo "$SEFF_OUT" | grep "Memory Efficiency" | awk '{print $3}' | tr -d '%')
-        
-        # Determine colors
-        CPU_COLOR=$(get_color_class "$CPU_EFF")
-        MEM_COLOR=$(get_color_class "$MEM_EFF")
-
-        ROWS+="<tr>"
-        ROWS+="<td style='font-family:monospace; font-weight:bold;'>#$JID</td>"
-        # CPU Column
-        ROWS+="<td>
-                <span class='label-text'>$CPU_EFF%</span> <span class='val-text'>Utilization</span>
-                <div class='bar-bg'><div class='bar-fill $CPU_COLOR' style='width: $CPU_EFF%;'></div></div>
-              </td>"
-        # Memory Column
-        ROWS+="<td>
-                <span class='label-text'>$MEM_EFF%</span> <span class='val-text'>Utilization</span>
-                <div class='bar-bg'><div class='bar-fill $MEM_COLOR' style='width: $MEM_EFF%;'></div></div>
-              </td>"
-        ROWS+="</tr>"
-    fi
+TILES=""
+for JID in $JOBIDS; do
+  OUT=$(seff "$JID" 2>/dev/null)
+  [[ -z "$OUT" ]] && continue
+  CPU_EFF=$(echo "$OUT" | grep "CPU Efficiency"    | awk '{print $3}' | tr -d '%')
+  MEM_EFF=$(echo "$OUT" | grep "Memory Efficiency" | awk '{print $3}' | tr -d '%')
+  [[ -z "$CPU_EFF" ]] && CPU_EFF=0
+  [[ -z "$MEM_EFF" ]] && MEM_EFF=0
+  TILES+="<div class='dm-tile'><span class='dm-tile-label'>Job $JID · CPU</span>"
+  TILES+="<span class='dm-tile-val'>${CPU_EFF}<span class='sub'>%</span></span>"
+  TILES+="<span class='dm-tile-sub'>efficiency</span>"
+  TILES+="<div class='dm-bar'><div class='dm-bar-fill $(bar_class "$CPU_EFF")' style='width:${CPU_EFF}%'></div></div></div>"
+  TILES+="<div class='dm-tile'><span class='dm-tile-label'>Job $JID · Memory</span>"
+  TILES+="<span class='dm-tile-val'>${MEM_EFF}<span class='sub'>%</span></span>"
+  TILES+="<span class='dm-tile-sub'>efficiency</span>"
+  TILES+="<div class='dm-bar'><div class='dm-bar-fill $(bar_class "$MEM_EFF")' style='width:${MEM_EFF}%'></div></div></div>"
 done
 
-# Final injection
-CONTENT=$(cat "$HTMLTEMPLATE")
-echo "${CONTENT//\{\{TABLE_ROWS\}\}/$ROWS}"
+if [[ -z "$TILES" ]]; then
+  BODY='<div class="dm-empty">No summary available.</div>'
+else
+  BODY="<div class=\"dm-grid\">$TILES</div>"
+fi
+
+while IFS= read -r line; do
+  line="${line//\{\{BODY\}\}/$BODY}"
+  printf '%s\n' "$line"
+done < "$HTML_TEMPLATE"
