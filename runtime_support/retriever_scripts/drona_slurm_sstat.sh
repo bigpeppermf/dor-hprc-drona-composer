@@ -18,7 +18,7 @@ clean_io() {
   echo "$val"
 }
 # Muted dash for empty/zero-ish values.
-dash() { local v="$1"; if [[ -z "$v" || "$v" == "0" || "$v" == "0K" || "$v" == "0B" ]]; then echo "—"; else echo "$v"; fi; }
+dash() { local v="$1"; if [[ -z "$v" || "$v" == "0" || "$v" == "0K" || "$v" == "0B" || "$v" == "00:00" || "$v" == "00:00:00" ]]; then echo "—"; else echo "$v"; fi; }
 # Size string (e.g. 2048K, 1.5G) -> bytes (integer).
 to_bytes() {
   local v="$1"; [[ -z "$v" ]] && { echo 0; return; }
