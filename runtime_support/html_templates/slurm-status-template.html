@@ -1,0 +1,84 @@
+<div class="drona-monitor">
+<style id="drona-monitor">
+  .drona-monitor { font-family: 'Inter', system-ui, sans-serif; color: #0f172a; }
+  .drona-monitor .dm-card {
+    position: relative; background: #ffffff; border: 1px solid #cbd5e1;
+    border-radius: 14px; padding: 22px 18px 16px; margin-top: 14px;
+    box-shadow: 0 4px 10px -4px rgba(15,23,42,0.12);
+  }
+  .drona-monitor .dm-title {
+    position: absolute; top: -11px; left: 18px; background: #ffffff;
+    padding: 2px 12px; font-size: 10px; font-weight: 800; color: #475569;
+    text-transform: uppercase; letter-spacing: 2px; border: 1px solid #cbd5e1;
+    border-radius: 20px; display: flex; align-items: center; gap: 7px;
+  }
+  .drona-monitor .dm-updated { font-weight: 600; color: #94a3b8; letter-spacing: 0.4px; }
+  .drona-monitor .dm-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #10b981;
+    box-shadow: 0 0 8px currentColor; color: #10b981;
+  }
+  .drona-monitor .dm-dot--pulse { animation: dm-pulse 2s infinite; }
+  @keyframes dm-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* Status header */
+  .drona-monitor .dm-status-header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px;
+    padding: 12px 16px; margin-top: 14px;
+  }
+  .drona-monitor .dm-badge {
+    display: inline-flex; align-items: center; gap: 8px; font-weight: 800;
+    font-size: 13px; letter-spacing: 0.5px; padding: 6px 12px; border-radius: 999px;
+    color: #fff;
+  }
+  .drona-monitor .dm-badge .dm-dot { background: #fff; color: #fff; box-shadow: none; }
+  .dm-badge--running   { background: #10b981; }
+  .dm-badge--pending   { background: #f59e0b; }
+  .dm-badge--completed { background: #3b82f6; }
+  .dm-badge--failed    { background: #ef4444; }
+  .dm-badge--cancelled { background: #64748b; }
+  .dm-badge--timeout   { background: #f97316; }
+  .dm-badge--oom       { background: #ef4444; }
+  .dm-badge--unknown   { background: #94a3b8; }
+  .drona-monitor .dm-status-meta {
+    display: flex; gap: 18px; flex-wrap: wrap; margin-left: auto;
+    font-size: 12px; color: #475569;
+  }
+  .drona-monitor .dm-status-meta b { color: #0f172a; font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+
+  /* Tile grid (used by sstat / node util / seff) */
+  .drona-monitor .dm-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+  }
+  .drona-monitor .dm-tile {
+    border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 12px 10px;
+    background: #ffffff; display: flex; flex-direction: column; gap: 4px;
+  }
+  .drona-monitor .dm-tile-label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; }
+  .drona-monitor .dm-tile-val { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 800; color: #0f172a; }
+  .drona-monitor .dm-tile-val .sub { color: #94a3b8; font-size: 14px; font-weight: 600; }
+  .drona-monitor .dm-tile-sub { font-size: 10px; color: #94a3b8; }
+  .drona-monitor .dm-tile-foot { font-size: 10px; color: #64748b; margin-top: 2px; }
+  .drona-monitor .dm-bar { height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .drona-monitor .dm-bar-fill { height: 100%; border-radius: 3px; }
+  .dm-bar--cpu    { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+  .dm-bar--mem    { background: linear-gradient(90deg,#10b981,#34d399); }
+  .dm-bar--io     { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+  .dm-bar--accent { background: #500000; }
+  .drona-monitor .dm-empty { font-size: 12px; color: #94a3b8; font-style: italic; padding: 6px 0; }
+</style>
+
+  <div class="dm-status-header">
+    <span class="dm-badge dm-badge--{{STATE_CLASS}}">
+      <span class="dm-dot {{PULSE}}"></span>{{STATE}}
+    </span>
+    <div class="dm-status-meta">
+      <span>Job <b>{{JOB_ID}}</b></span>
+      <span>{{JOB_NAME}}</span>
+      <span>elapsed <b>{{ELAPSED}}</b></span>
+      <span><b>{{NODES}}</b></span>
+      <span class="dm-updated">updated {{UPDATED}}</span>
+    </div>
+  </div>
+</div>
