@@ -1,8 +1,6 @@
 #!/bin/bash
-
-status=$(squeue -j $JOBID  -h -o "%T")
-if [[ "$statud" != "PENDING" && "$status" != "RUNNING" ]]; then
-    echo "DONE"
-else
-    echo $status
-fi
+# Emits the normalized Slurm state token for $JOBID (used by the hidden
+# `status` field that drives section conditions).
+DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$DIR/drona_slurm_state_lib.sh"
+drona_detect_state "$JOBID"
