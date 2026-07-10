@@ -22,6 +22,6 @@ drona_detect_state() {
     TIMEOUT|TO)         echo "TIMEOUT" ;;
     OUT_OF_ME*|OOM)     echo "OUT_OF_MEMORY" ;;
     "")                 echo "UNKNOWN" ;;
-    *)                  echo "$s" ;;
+    *)                  echo "UNKNOWN" ;;
   esac
 }

@@ -32,4 +32,17 @@ source "$DIR/_stub_helpers.sh"
 make_stub squeue 'exit 0'; make_stub sacct 'exit 0'; use_stubs
 source "$LIB"; assert_eq "$(drona_detect_state 123)" "UNKNOWN" "no data -> UNKNOWN"
 cleanup_stubs
+
+# Truncated OOM normalized
+source "$DIR/_stub_helpers.sh"
+make_stub squeue 'exit 0'; make_stub sacct 'echo "OUT_OF_ME+"'; use_stubs
+source "$LIB"; assert_eq "$(drona_detect_state 123)" "OUT_OF_MEMORY" "truncated OOM normalized"
+cleanup_stubs
+
+# Unmapped state -> UNKNOWN
+source "$DIR/_stub_helpers.sh"
+make_stub squeue 'exit 0'; make_stub sacct 'echo "SUSPENDED"'; use_stubs
+source "$LIB"; assert_eq "$(drona_detect_state 123)" "UNKNOWN" "unmapped state -> UNKNOWN"
+cleanup_stubs
+
 echo "ALL PASS"
