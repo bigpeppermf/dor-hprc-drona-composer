@@ -1,14 +1,21 @@
-
 <div class="drona-monitor">
   <div class="dm-card">
     <div class="dm-title"><span class="dm-dot"></span> Output / Error Logs
       <span class="dm-updated">· job {{JOBID}}</span>
     </div>
-
-    <div style="font-size: 10px; font-weight: 800; color: #61afef; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;">Standard Output</div>
-    <pre style="margin: 0 0 16px; background: #0d0f14; color: #abb2bf; border: 1px solid #282c34; border-radius: 10px; padding: 16px; max-height: 320px; overflow-y: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap;">{{OUTPUT}}</pre>
-
-    <div style="font-size: 10px; font-weight: 800; color: #e06c75; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;">Error Log</div>
-    <pre style="margin: 0; background: #0d0f14; color: #e06c75; border: 1px solid #282c34; border-radius: 10px; padding: 16px; max-height: 320px; overflow-y: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap;">{{ERROR}}</pre>
+    <div class="dm-logterm">
+      <input type="radio" id="dm-tab-out" name="dm-log-toggle" checked>
+      <input type="radio" id="dm-tab-err" name="dm-log-toggle">
+      <div class="dm-log-tabbar">
+        <label for="dm-tab-out" class="dm-log-tab">Standard Output</label>
+        <label for="dm-tab-err" class="dm-log-tab">Error Log</label>
+      </div>
+      <div class="dm-log-pane dm-log-out">
+{{OUTPUT}}
+      </div>
+      <div class="dm-log-pane dm-log-err">
+{{ERROR}}
+      </div>
+    </div>
   </div>
 </div>
