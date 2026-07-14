@@ -68,6 +68,38 @@
   .drona-monitor .dm-bar--accent { background: #500000; }
   .drona-monitor .dm-empty { font-size: 12px; color: #94a3b8; font-style: italic; padding: 6px 0; }
 
+  /* Time-series chart, rendered by the <drona-chart> component (registered in
+     main.bundle.js). The component emits only these classes; all styling lives
+     here so it stays consistent with the rest of the dm-* system. */
+  .drona-monitor .dm-chart { position: relative; }
+  .drona-monitor .dm-chart-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 6px; flex-wrap: wrap;
+  }
+  .drona-monitor .dm-chart-title {
+    font-size: 10px; font-weight: 800; color: #64748b;
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .drona-monitor .dm-chart-legend { display: flex; gap: 12px; }
+  .drona-monitor .dm-key {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; color: #64748b;
+  }
+  .drona-monitor .dm-key i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .drona-monitor .dm-chart-svg { width: 100%; height: auto; display: block; overflow: visible; cursor: crosshair; }
+  .drona-monitor .dm-chart-foot {
+    display: flex; justify-content: space-between;
+    font-size: 9px; color: #94a3b8; margin-top: 2px;
+  }
+  .drona-monitor .dm-chart-tip {
+    position: absolute; top: -2px; transform: translateX(-50%);
+    background: #0f172a; color: #fff; font-size: 11px;
+    font-family: 'JetBrains Mono', monospace; padding: 6px 9px;
+    border-radius: 6px; pointer-events: none; white-space: nowrap; z-index: 5;
+  }
+  .drona-monitor .dm-tip-row { display: flex; align-items: center; gap: 6px; }
+  .drona-monitor .dm-tip-row i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
       /* Log terminal: CSS-only Output/Error tabs (radio + :checked sibling) */
       .drona-monitor .dm-logterm {
         background: #0d0f14; border: 1px solid #282c34; border-radius: 10px;

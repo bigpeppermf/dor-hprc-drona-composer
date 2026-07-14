@@ -4,9 +4,52 @@ import json
 import jsonref
 import subprocess
 import traceback
+from urllib.parse import urlsplit
 from .error_handler import APIError, handle_api_error
 from copy import deepcopy
 from .utils import get_envs_dir, get_runtime_dir
+
+# Schemas may reference the shared runtime schema library with a "runtime:"
+# $ref, e.g. {"$ref": "runtime:monitoring/manage.snippet.json"} or a JSON
+# pointer into it, {"$ref": "runtime:monitoring/manage.snippet.json#/status_header"}.
+# This keeps reusable form-element blocks (like the job-monitoring dashboard)
+# in one place under runtime_support/schema_library/ instead of copied into
+# every environment, without hardcoding an absolute install path in the schema.
+RUNTIME_REF_SCHEME = "runtime"
+
+
+def make_schema_loader():
+    """Build a jsonref loader that resolves ``runtime:`` refs against the
+    shared schema library and delegates everything else to the default
+    file/URL loader (preserving existing relative-$ref behavior)."""
+    library_dir = os.path.join(get_runtime_dir(), "schema_library")
+
+    def loader(uri):
+        parts = urlsplit(uri)
+        if parts.scheme == RUNTIME_REF_SCHEME:
+            # urlsplit puts the first path segment in either netloc or path
+            # depending on the ref spelling; join them and strip leading slashes.
+            rel = (parts.netloc + "/" + parts.path) if parts.netloc else parts.path
+            rel = rel.lstrip("/")
+            target = os.path.normpath(os.path.join(library_dir, rel))
+            # Contain refs to the library dir (no ../ escape).
+            if os.path.commonpath([library_dir, target]) != library_dir:
+                raise APIError(
+                    "runtime: schema ref escapes the schema library",
+                    status_code=400,
+                    details={"ref": uri},
+                )
+            if not os.path.exists(target):
+                raise APIError(
+                    "runtime: schema ref not found in the schema library",
+                    status_code=404,
+                    details={"ref": uri, "path": target},
+                )
+            with open(target) as f:
+                return json.load(f)
+        return jsonref.jsonloader(uri)
+
+    return loader
 
 CONTAINER_TYPES = {
     "rowContainer", "container", "collapsibleRowContainer",
@@ -180,7 +223,9 @@ def get_schema_route(environment):
     try:
         abs_path = os.path.abspath(base_path)
         base_uri = f'file:///{abs_path.lstrip("/").replace(os.sep, "/")}/'
-        jsonref_result = jsonref.loads(schema_data, base_uri=base_uri, proxies=True)
+        jsonref_result = jsonref.loads(
+            schema_data, base_uri=base_uri, loader=make_schema_loader(), proxies=True
+        )
         
         schema_dict = convert_jsonref_to_dict(jsonref_result)
         

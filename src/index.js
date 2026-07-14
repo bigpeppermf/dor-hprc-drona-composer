@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import ReactDOM from "react-dom";
+// Side-effect import: registers <drona-chart> so retriever HTML rendered through
+// staticText can use it. Must be registered before any retriever output lands.
+import "./webComponents/dronaChart";
 import JobComposer from "./JobComposer";
 import RerunPromptModal from "./RerunPromptModal";
 import EnvironmentModal from "./EnvironmentModal";
