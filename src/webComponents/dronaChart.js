@@ -56,7 +56,7 @@ function formatSpan(seconds) {
 
 class DronaChart extends HTMLElement {
   static get observedAttributes() {
-    return ["series", "chart-title", "x-span"];
+    return ["series", "chart-title", "x-span", "times"];
   }
 
   connectedCallback() {
@@ -85,6 +85,32 @@ class DronaChart extends HTMLElement {
     );
   }
 
+  /**
+   * Map a point index to an x position.
+   *
+   * Samples are only taken while the panel is polling, so the series is not
+   * evenly spaced in time — a closed or backgrounded tab leaves gaps. Position
+   * by the real timestamps when we have them, so a 10-minute gap doesn't read
+   * like a 20-second one. Falls back to index spacing when `times` is absent or
+   * degenerate (every sample at the same second).
+   */
+  _xScale(pointCount) {
+    const byIndex = (i) => PAD_L + (i / Math.max(pointCount - 1, 1)) * PLOT_W;
+
+    const raw = (this.getAttribute("times") || "")
+      .split(",")
+      .filter((v) => v !== "")
+      .map(Number);
+    if (raw.length !== pointCount || !raw.every(Number.isFinite)) return byIndex;
+
+    const first = raw[0];
+    const last = raw[raw.length - 1];
+    const span = last - first;
+    if (!(span > 0)) return byIndex;
+
+    return (i) => PAD_L + ((raw[i] - first) / span) * PLOT_W;
+  }
+
   render() {
     const series = this.seriesData;
     this.textContent = "";
@@ -98,7 +124,7 @@ class DronaChart extends HTMLElement {
     }
 
     const pointCount = Math.max(...series.map((s) => s.points.length));
-    const x = (i) => PAD_L + (i / (pointCount - 1)) * PLOT_W;
+    const x = this._xScale(pointCount);
     // Both series are percentages, so they share one 0-100 axis. Never dual-axis.
     const y = (v) => PAD_T + (1 - Math.min(Math.max(Number(v), 0), 100) / 100) * PLOT_H;
 
@@ -254,6 +280,19 @@ class DronaChart extends HTMLElement {
   }
 
   _bindPointer(svg, tip, series, x, y, hover, pointCount) {
+    // Precompute mark positions once: with time-based spacing the nearest point
+    // can't be derived arithmetically from the cursor position.
+    const xs = Array.from({ length: pointCount }, (_, i) => x(i));
+    const nearest = (localX) => {
+      let best = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < xs.length; i++) {
+        const d = Math.abs(xs[i] - localX);
+        if (d < bestDist) { bestDist = d; best = i; }
+      }
+      return best;
+    };
+
     const hide = () => {
       tip.hidden = true;
       hover.crosshair.setAttribute("opacity", 0);
@@ -261,36 +300,52 @@ class DronaChart extends HTMLElement {
     };
 
     svg.addEventListener("pointerleave", hide);
+
+    // Coalesce pointermove to one update per frame; the handler touches enough
+    // attributes that running it per event is wasted work during a fast drag.
+    let frame = null;
+    let pending = null;
     svg.addEventListener("pointermove", (ev) => {
-      const rect = svg.getBoundingClientRect();
-      if (!rect.width) return;
-      const localX = (ev.clientX - rect.left) * (VIEW_W / rect.width);
-      const i = Math.max(0, Math.min(pointCount - 1, Math.round(((localX - PAD_L) / PLOT_W) * (pointCount - 1))));
-
-      hover.crosshair.setAttribute("x1", x(i));
-      hover.crosshair.setAttribute("x2", x(i));
-      hover.crosshair.setAttribute("opacity", 1);
-
-      tip.textContent = "";
-      series.forEach((s, k) => {
-        const v = Number(s.points[Math.min(i, s.points.length - 1)]);
-        hover.dots[k].setAttribute("cx", x(i));
-        hover.dots[k].setAttribute("cy", y(v));
-        hover.dots[k].setAttribute("opacity", 1);
-
-        const row = document.createElement("div");
-        row.className = "dm-tip-row";
-        const swatch = document.createElement("i");
-        swatch.style.background = s.color;
-        row.appendChild(swatch);
-        row.appendChild(document.createTextNode(`${s.label} ${v.toFixed(1)}%`));
-        tip.appendChild(row);
+      pending = ev;
+      if (frame !== null) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        const e = pending;
+        pending = null;
+        if (e) this._updateHover(e, svg, tip, series, x, y, hover, nearest);
       });
-
-      tip.hidden = false;
-      const px = (x(i) / VIEW_W) * rect.width;
-      tip.style.left = `${Math.min(Math.max(px, 8), rect.width - 8)}px`;
     });
+  }
+
+  _updateHover(ev, svg, tip, series, x, y, hover, nearest) {
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width) return;
+    const localX = (ev.clientX - rect.left) * (VIEW_W / rect.width);
+    const i = nearest(localX);
+
+    hover.crosshair.setAttribute("x1", x(i));
+    hover.crosshair.setAttribute("x2", x(i));
+    hover.crosshair.setAttribute("opacity", 1);
+
+    tip.textContent = "";
+    series.forEach((s, k) => {
+      const v = Number(s.points[Math.min(i, s.points.length - 1)]);
+      hover.dots[k].setAttribute("cx", x(i));
+      hover.dots[k].setAttribute("cy", y(v));
+      hover.dots[k].setAttribute("opacity", 1);
+
+      const row = document.createElement("div");
+      row.className = "dm-tip-row";
+      const swatch = document.createElement("i");
+      swatch.style.background = s.color;
+      row.appendChild(swatch);
+      row.appendChild(document.createTextNode(`${s.label} ${v.toFixed(1)}%`));
+      tip.appendChild(row);
+    });
+
+    tip.hidden = false;
+    const px = (x(i) / VIEW_W) * rect.width;
+    tip.style.left = `${Math.min(Math.max(px, 8), rect.width - 8)}px`;
   }
 }
 

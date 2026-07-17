@@ -23,15 +23,17 @@ if [[ -z "$SERIES" ]]; then
   exit 0
 fi
 
-IFS='|' read -r CPU_CSV MEM_CSV SPAN <<< "$SERIES"
+IFS='|' read -r CPU_CSV MEM_CSV SPAN TIMES_CSV <<< "$SERIES"
 
 # Memory needs a real denominator; without ReqMem the percentage would be a lie,
 # so plot CPU alone rather than show a fabricated memory line.
+# "Peak mem" is deliberate: MaxRSS is a high-water mark and never falls, so
+# calling it "Memory" would imply live occupancy it does not report.
 if [[ "${REQMEM_BYTES:-0}" -gt 0 ]]; then
-  SERIES_JSON="[{\"label\":\"CPU\",\"color\":\"#3b82f6\",\"points\":[${CPU_CSV}]},{\"label\":\"Memory\",\"color\":\"#10b981\",\"points\":[${MEM_CSV}]}]"
+  SERIES_JSON="[{\"label\":\"CPU\",\"color\":\"#3b82f6\",\"points\":[${CPU_CSV}]},{\"label\":\"Peak mem\",\"color\":\"#10b981\",\"points\":[${MEM_CSV}]}]"
 else
   SERIES_JSON="[{\"label\":\"CPU\",\"color\":\"#3b82f6\",\"points\":[${CPU_CSV}]}]"
 fi
 
-printf '<drona-chart chart-title="Utilization over time" x-span="%s" series=\x27%s\x27></drona-chart>\n' \
-  "$SPAN" "$SERIES_JSON"
+printf '<drona-chart chart-title="Utilization over time" x-span="%s" times="%s" series=\x27%s\x27></drona-chart>\n' \
+  "$SPAN" "$TIMES_CSV" "$SERIES_JSON"

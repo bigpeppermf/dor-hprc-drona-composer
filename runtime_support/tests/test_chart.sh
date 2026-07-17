@@ -55,7 +55,12 @@ make_stub sstat 'exit 1'   # no new sample; assert on the fixed history
 OUT=$(JOBID=444 bash "$SCRIPTS/drona_slurm_chart.sh")
 assert_contains "$OUT" "<drona-chart" "emits the component element"
 assert_contains "$OUT" '"points":[100.0,50.0]' "CPU% is a real rate from cpu-time deltas"
-assert_contains "$OUT" '"label":"Memory"' "memory series present when ReqMem is known"
+assert_contains "$OUT" '"label":"Peak mem"' "memory series present when ReqMem is known"
+# MaxRSS is a high-water mark, so the label must not imply live occupancy.
+case "$OUT" in
+  *'"label":"Memory"'*) echo "FAIL: MaxRSS labelled as live Memory"; exit 1 ;;
+esac
+echo "ok: memory series is labelled Peak mem, matching MaxRSS semantics"
 assert_contains "$OUT" '"points":[20.0,30.0]' "Mem% is rss/ReqMem (1G,1.5G of 5G)"
 assert_contains "$OUT" 'x-span="20"' "x-span is the wall span of the samples"
 
@@ -73,17 +78,42 @@ make_stub sacct 'echo "|1"'
 OUT=$(JOBID=444 bash "$SCRIPTS/drona_slurm_chart.sh")
 assert_contains "$OUT" '"label":"CPU"' "CPU still plotted without ReqMem"
 case "$OUT" in
-  *'"label":"Memory"'*) echo "FAIL: invented a memory % with no ReqMem"; exit 1 ;;
+  *'"label":"Peak mem"'*) echo "FAIL: invented a memory % with no ReqMem"; exit 1 ;;
 esac
 echo "ok: memory series omitted when ReqMem is unknown"
 
 # --- history is capped -------------------------------------------------------
 make_stub sacct 'echo "5G|1"'
-make_stub sstat 'echo "00:30|1048576K"'
+make_stub sstat 'echo "00:30|1048576K|1"'
 export DRONA_METRICS_MAX_SAMPLES=5
 : > "$WORK/555.tsv"
 for i in $(seq 1 9); do drona_metrics_sample 555 >/dev/null; done
 assert_eq "$(wc -l < "$WORK/555.tsv" | tr -d ' ')" "5" "history capped at DRONA_METRICS_MAX_SAMPLES"
+
+# --- multi-task jobs: AveCPU is PER TASK, so a sample must record total -------
+# 4 tasks each holding 1 CPU: AveCPU climbs 1s per wall-second, total is 4s/s.
+# Recording AveCPU alone under-reports utilization by a factor of NTasks.
+make_stub sstat 'echo "00:10|1048576K|4"'
+: > "$WORK/666.tsv"
+drona_metrics_sample 666 >/dev/null
+assert_eq "$(awk -F'\t' '{print $2}' "$WORK/666.tsv")" "40" \
+  "sample records TOTAL cpu-seconds (AveCPU x NTasks), not per-task"
+
+# 4 tasks on 4 CPUs, fully busy for 10s -> 40 cpu-secs of 40 available = 100%.
+make_stub sacct 'echo "16G|4"'
+printf '1000\t0\t1073741824\n1010\t40\t1073741824\n1020\t80\t1073741824\n' > "$WORK/777.tsv"
+make_stub sstat 'exit 1'
+OUT=$(JOBID=777 bash "$SCRIPTS/drona_slurm_chart.sh")
+assert_contains "$OUT" '"points":[100.0,100.0]' \
+  "multi-task CPU% is not divided down by NTasks"
+
+# --- x positions must follow real time, not sample index ---------------------
+# Samples at t=0,10,70: the 60s gap must not render like the 10s one.
+make_stub sacct 'echo "5G|1"'
+printf '1000\t0\t536870912\n1010\t10\t536870912\n1070\t70\t536870912\n' > "$WORK/888.tsv"
+OUT=$(JOBID=888 bash "$SCRIPTS/drona_slurm_chart.sh")
+assert_contains "$OUT" 'times="10,70"' \
+  "per-sample timestamps are shipped so x can follow real time"
 
 echo
 echo "all chart tests passed"

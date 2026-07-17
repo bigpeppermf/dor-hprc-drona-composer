@@ -87,9 +87,24 @@ Sampling: `sstat` is point-in-time, so each poll appends one row to
 draws, since CPU% is a rate. Derived series, both real and both 0-100 so they
 share one axis:
 
-- `CPU%  = Δcpu_seconds / (Δwall × AllocCPUS) × 100`
-- `Mem%  = MaxRSS / ReqMem × 100` — omitted entirely when `ReqMem` is unknown,
-  rather than showing a made-up percentage.
+- `CPU%      = Δtotal_cpu_seconds / (Δwall × AllocCPUS) × 100`
+- `Peak mem% = MaxRSS / ReqMem × 100` — omitted entirely when `ReqMem` is
+  unknown, rather than showing a made-up percentage.
+
+Three Slurm field semantics that are easy to get wrong (all three were live bugs
+once; each has a regression test in `tests/test_chart.sh`):
+
+- **`AveCPU` is the average cpu-time _per task_.** Total cpu-time is
+  `AveCPU × NTasks`. Dividing `AveCPU` by `AllocCPUS` under-reports utilization
+  by a factor of `NTasks` — invisible on 1-task jobs, badly wrong on real ones.
+  Samples are normalized to total cpu-seconds at write time.
+- **`MaxRSS` is a high-water mark** and never decreases, so the series is "peak
+  so far", not live occupancy. It is labelled `Peak mem` for that reason; don't
+  rename it to `Memory` without changing the underlying field.
+- **Samples are not evenly spaced in time.** They only advance while the panel
+  polls, so a closed tab leaves gaps. The retriever ships a `times` attribute
+  (per-sample offsets in seconds) and the component positions x by it; spacing by
+  index would draw a 10-minute gap exactly like a 20-second one.
 
 ### Contract the snippet expects
 
