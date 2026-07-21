@@ -1,5 +1,4 @@
 import { getFieldValue, getAllFields } from './fieldUtils';
-import config from '@config';
 
 /**
  * Execute a retriever script with dynamic parameters from form values
@@ -55,9 +54,11 @@ export async function executeScript({
     }
 
     const queryString = params.toString();
-    const devUrl = config.development.dashboard_url;
-    const prodUrl = config.production.dashboard_url;
-    const curUrl = process.env.NODE_ENV === "development" ? devUrl : prodUrl;
+    // Use the app's actual mount path (request.script_root, exposed as
+    // document.dashboard_url) so requests hit the same /pun/dev or /pun/sys
+    // prefix the page was served under — matches every other fetch in the app
+    // and needs no config/NODE_ENV toggling when promoting dev -> sys.
+    const curUrl = document.dashboard_url || "";
     
     const requestUrl = `${curUrl}/jobs/composer/evaluate_script?retriever_path=${encodeURIComponent(
         retrieverPath
@@ -108,9 +109,11 @@ export async function fetchFileContent({ filePath, environment }) {
         params.append('DRONA_ENV_DIR', envPath);
     }
 
-    const devUrl = config.development.dashboard_url;
-    const prodUrl = config.production.dashboard_url;
-    const curUrl = process.env.NODE_ENV === "development" ? devUrl : prodUrl;
+    // Use the app's actual mount path (request.script_root, exposed as
+    // document.dashboard_url) so requests hit the same /pun/dev or /pun/sys
+    // prefix the page was served under — matches every other fetch in the app
+    // and needs no config/NODE_ENV toggling when promoting dev -> sys.
+    const curUrl = document.dashboard_url || "";
 
     const requestUrl = `${curUrl}/jobs/composer/read_file?${params.toString()}`;
     const response = await fetch(requestUrl);
